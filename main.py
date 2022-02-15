@@ -105,6 +105,9 @@ def save(i):
       return True
    try:
       content = content_from_har(response['content'])
+   except (PermissionError, OSError) as e:
+      # file creation fail
+      return False
    except:
       try:
          content, response_headers = content_download(request)
