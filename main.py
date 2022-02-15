@@ -4,6 +4,19 @@ import requests
 from datetime import datetime as dt
 from urllib.parse import unquote
 
+
+
+
+br = True
+try:
+   import brotlicffi
+except:
+   try:
+      import brotli
+   except:
+      # cannot decompress br
+      br = False
+
 def wget(url, cookies="", headers=""):
       file = url.split('://', 1)[1]
       file = unquote(file)
@@ -15,14 +28,22 @@ def wget(url, cookies="", headers=""):
       file = os.path.join(dir, base)
       if os.path.isfile(file):
          return
-      os.makedirs(dir, exist_ok=True)
+      try:
+         os.makedirs(dir, exist_ok=True)
+      except OSError as e:
+         print(e)
+         return
       print(file)
       with session.get(url, stream=True, cookies=cookies, headers=headers) as r:
          print(r.status_code)
          # r.raise_for_status()
          content = r.content
-         with open(file, 'wb') as f:
-            f.write(content)
+         try:
+            with open(file, 'wb') as f:
+               f.write(content)
+         except OSError as e:
+            print(e)
+            return
          try:
             utime = r.headers['last-modified']
             utime = dt.strptime(utime, '%a, %d %b %Y %H:%M:%S GMT').timestamp()
@@ -42,7 +63,7 @@ def conv(dicts):
       value = d['value']
       if name.startswith(':'):
          continue
-      dict = dict | { name : value }
+      dict = dict | { name.lower() : value }
    return dict
 
 def dl(i):
@@ -53,10 +74,10 @@ def dl(i):
    cookies = conv(r['cookies'])
    headers = conv(r['headers'])
    # headers = headers | { 'accept-encoding': 'identity' } # i dont know how to make requests decode gzip
-   # headers = headers | { 'accept-encoding': 'gzip' }
+   # headers = headers | { 'accept-encoding': ', '.join( ['gzip', 'deflate'] + ( ['br'] if br else [] ) ) }
    headers.pop('if-modified-since', None) # avoid 304 code
    headers.pop('if-none-match', None) # avoid 304 code
-   headers.pop('Range', None) # avoid 206 code
+   headers.pop('range', None) # avoid 206 code
    #print(cookies)
    #print(headers)
    wget(url, cookies, headers)
