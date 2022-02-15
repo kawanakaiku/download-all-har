@@ -1,10 +1,10 @@
+import sys
 import os
 import json
 import requests
 from datetime import datetime as dt
 from urllib.parse import unquote
-
-
+import base64
 
 
 br = True
@@ -17,7 +17,7 @@ except:
       # cannot decompress br
       br = False
 
-def wget(url, cookies="", headers=""):
+def filename(url):
       file = url.split('://', 1)[1]
       file = unquote(file)
       dir = os.path.dirname(file)
@@ -26,32 +26,35 @@ def wget(url, cookies="", headers=""):
          base = 'index.html'
       base = base.split('?', 1)[0]
       file = os.path.join(dir, base)
+      return file, dir, base
+
+def save_file(file, dir, content, response_headers):
       if os.path.isfile(file):
-         return
+         return True
       try:
          os.makedirs(dir, exist_ok=True)
       except OSError as e:
          print(e)
-         return
+         return True
       print(file)
-      with session.get(url, stream=True, cookies=cookies, headers=headers) as r:
-         print(r.status_code)
-         # r.raise_for_status()
-         content = r.content
-         try:
-            with open(file, 'wb') as f:
-               f.write(content)
-         except OSError as e:
-            print(e)
-            return
-         try:
-            utime = r.headers['last-modified']
-            utime = dt.strptime(utime, '%a, %d %b %Y %H:%M:%S GMT').timestamp()
-         except:
-            utime = ""
-            pass
-      if utime:
-         os.utime(file, (utime, utime))
+      try:
+         with open(file, 'wb') as f:
+            f.write(content)
+      except OSError as e:
+         print(e)
+         return
+      utime_file(file, response_headers)
+      return True
+
+
+
+def utime_file(file, headers):
+   try:
+      utime = headers['last-modified']
+      utime = dt.strptime(utime, '%a, %d %b %Y %H:%M:%S GMT').timestamp()
+      os.utime(file, (utime, utime))
+   except:
+      pass
 
 
 ## convert list to dicts
@@ -66,28 +69,57 @@ def conv(dicts):
       dict = dict | { name.lower() : value }
    return dict
 
-def dl(i):
-   if i["response"]["_error"] == "net::ERR_BLOCKED_BY_CLIENT":
-      return
-   r = i['request']
-   url = r['url']
-   cookies = conv(r['cookies'])
-   headers = conv(r['headers'])
+def content_download(request):
+   url = request['url']
+   cookies = conv(request['cookies'])
+   headers = conv(request['headers'])
    # headers = headers | { 'accept-encoding': 'identity' } # i dont know how to make requests decode gzip
-   # headers = headers | { 'accept-encoding': ', '.join( ['gzip', 'deflate'] + ( ['br'] if br else [] ) ) }
+   headers = headers | { 'accept-encoding': ', '.join( ['gzip', 'deflate'] + ( ['br'] if br else [] ) ) }
    headers.pop('if-modified-since', None) # avoid 304 code
    headers.pop('if-none-match', None) # avoid 304 code
    headers.pop('range', None) # avoid 206 code
-   #print(cookies)
-   #print(headers)
-   wget(url, cookies, headers)
+   with session.get(url, stream=True, cookies=cookies, headers=headers) as r:
+      print(r.status_code)
+      # r.raise_for_status()
+      return r.content, r.headers
+
+def content_from_har(content):
+   text = content['text']
+   try:
+      content['text']
+      return base64.b64decode(text)
+   except:
+      return text.encode('utf-8')
+   
+
+def save(i):
+   request = i['request']
+   # request_headers = conv(request['headers'])
+   response = i['response']
+   response_headers = conv(response['headers'])
+   if response["_error"] == "net::ERR_BLOCKED_BY_CLIENT":
+      return True
+   url = request['url']
+   file, dir, _ = filename(url)
+   if os.path.isfile(file):
+      return True
+   try:
+      content = content_from_har(response['content'])
+   except:
+      try:
+         content, response_headers = content_download(request)
+      except:
+         return False
+   save_file(file, dir, content, response_headers)
+   return True
 
 if __name__ == '__main__':
+   har = sys.argv[1]
    session = requests.Session()
    ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36'
    session.headers.update({'User-Agent': ua})
-   if os.path.isfile("u.json"):
-      text = open("u.json","r").read()
+   if os.path.isfile(har):
+      text = open(har, "r", encoding='utf-8').read()
    else:
       print("Paste your json below and press enter.")
       text = ""
@@ -98,4 +130,4 @@ if __name__ == '__main__':
          else:
             break
    for i in json.loads(text)["log"]["entries"]:
-      dl(i)
+      save(i)
