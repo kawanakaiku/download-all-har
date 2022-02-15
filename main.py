@@ -3,8 +3,6 @@ import json
 import requests
 from datetime import datetime as dt
 from urllib.parse import unquote
-import io
-import zlib
 
 def wget(url, cookies="", headers=""):
       file = url.split('://', 1)[1]
@@ -22,15 +20,7 @@ def wget(url, cookies="", headers=""):
       with session.get(url, stream=True, cookies=cookies, headers=headers) as r:
          print(r.status_code)
          # r.raise_for_status()
-         try:
-            enc = r.headers['content-encoding']
-         except:
-            enc = 'identity'
          content = r.content
-         if enc == 'identity':
-            pass
-         elif enc == 'gzip':
-            content = zlib.decompress(content)
          with open(file, 'wb') as f:
             f.write(content)
          try:
@@ -63,7 +53,7 @@ def dl(i):
    cookies = conv(r['cookies'])
    headers = conv(r['headers'])
    # headers = headers | { 'accept-encoding': 'identity' } # i dont know how to make requests decode gzip
-   headers = headers | { 'accept-encoding': 'gzip' }
+   # headers = headers | { 'accept-encoding': 'gzip' }
    headers.pop('if-modified-since', None) # avoid 304 code
    headers.pop('if-none-match', None) # avoid 304 code
    headers.pop('Range', None) # avoid 206 code
