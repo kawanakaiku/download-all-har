@@ -86,7 +86,7 @@ def content_download(request):
 def content_from_har(content):
    text = content['text']
    try:
-      content['text']
+      content['encoding']
       return base64.b64decode(text)
    except:
       return text.encode('utf-8')
