@@ -2,7 +2,7 @@ import sys
 import os
 import json
 import requests
-from datetime import datetime as dt
+import datetime
 from urllib.parse import unquote
 import base64
 
@@ -51,9 +51,9 @@ def save_file(file, dir, content, response_headers):
 def utime_file(file, headers):
    try:
       utime = headers['last-modified']
-      utime = dt.strptime(utime, '%a, %d %b %Y %H:%M:%S GMT').timestamp()
+      utime = datetime.datetime.strptime(utime, '%a, %d %b %Y %H:%M:%S GMT').replace(tzinfo=datetime.timezone.utc).timestamp()
       os.utime(file, (utime, utime))
-   except:
+   except Exception as e:
       pass
 
 
