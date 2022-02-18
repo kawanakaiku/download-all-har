@@ -19,9 +19,10 @@ except:
 
 def filename(url):
       file = url.split('://', 1)[1]
-      file = unquote(file)
       dir = os.path.dirname(file)
       base = os.path.basename(file)
+      dir = unquote(dir)
+      base = unquote(base)
       if base == '':
          base = 'index.html'
       base = base.split('?', 1)[0]
