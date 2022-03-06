@@ -22,10 +22,10 @@ def filename(url):
       dir = os.path.dirname(file)
       base = os.path.basename(file)
       dir = unquote(dir)
+      base = base.split('?', 1)[0]
       base = unquote(base)
       if base == '':
          base = 'index.html'
-      base = base.split('?', 1)[0]
       file = os.path.join(dir, base)
       return file, dir, base
 
