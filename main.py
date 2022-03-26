@@ -17,7 +17,7 @@ except:
       # cannot decompress br
       br = False
 
-def filename(url):
+def filename(url, response):
       file = url.split('://', 1)[1]
       dir = os.path.dirname(file)
       base = os.path.basename(file)
@@ -26,6 +26,10 @@ def filename(url):
       base = unquote(base)
       if base == '':
          base = 'index.html'
+      type = response['content-type'] if 'content-type' in response else ''
+      if 'text/html' in type:
+         if not base.endswith('.html'):
+            base = base + '.html'
       file = os.path.join(dir, base)
       return file, dir, base
 
@@ -101,7 +105,7 @@ def save(i):
    if response["_error"] == "net::ERR_BLOCKED_BY_CLIENT":
       return True
    url = request['url']
-   file, dir, _ = filename(url)
+   file, dir, _ = filename(url, response_headers)
    if os.path.isfile(file):
       return True
    try:
