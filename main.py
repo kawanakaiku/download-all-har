@@ -5,6 +5,7 @@ import requests
 import datetime
 from urllib.parse import unquote
 import base64
+import dateutil.parser
 
 
 br = True
@@ -28,7 +29,7 @@ def filename(url, response):
          base = 'index.html'
       type = response['content-type'] if 'content-type' in response else ''
       if 'text/html' in type:
-         if not base.endswith('.html'):
+         if not base.endswith(('.html', '.htm', '.php', '.asp', '.aspx', '.jsp')):
             base = base + '.html'
       file = os.path.join(dir, base)
       return file, dir, base
@@ -56,7 +57,8 @@ def save_file(file, dir, content, response_headers):
 def utime_file(file, headers):
    try:
       utime = headers['last-modified']
-      utime = datetime.datetime.strptime(utime, '%a, %d %b %Y %H:%M:%S GMT').replace(tzinfo=datetime.timezone.utc).timestamp()
+      # utime = datetime.datetime.strptime(utime, '%a, %d %b %Y %H:%M:%S GMT').replace(tzinfo=datetime.timezone.utc).timestamp()
+      utime = dateutil.parser.parse(headers["last-modified"]).replace(tzinfo=None).timestamp()
       os.utime(file, (utime, utime))
    except Exception as e:
       pass
