@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys
 import os
 import json
@@ -86,9 +87,9 @@ def content_download(request):
    headers.pop('if-none-match', None) # avoid 304 code
    headers.pop('range', None) # avoid 206 code
    with session.get(url, stream=True, cookies=cookies, headers=headers) as r:
-      print(r.status_code)
+      # print(r.status_code)
       # r.raise_for_status()
-      return r.content, r.headers
+      return r.status_code, r.content, r.headers
 
 def content_from_har(content):
    text = content['text']
@@ -117,9 +118,12 @@ def save(i):
       return False
    except:
       try:
-         content, response_headers = content_download(request)
+         status_code, content, response_headers = content_download(request)
       except:
          return False
+   if str(status_code)[0] == "4":
+      print(f"Error downloading status_code {status_code}")
+      return False
    save_file(file, dir, content, response_headers)
    return True
 
