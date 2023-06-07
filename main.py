@@ -119,11 +119,11 @@ def save(i):
    except:
       try:
          status_code, content, response_headers = content_download(request)
+         if str(status_code)[0] == "4":
+             print(f"Error downloading status_code {status_code}")
+             return False
       except:
          return False
-   if str(status_code)[0] == "4":
-      print(f"Error downloading status_code {status_code}")
-      return False
    save_file(file, dir, content, response_headers)
    return True
 
